@@ -79,12 +79,16 @@ impl TransactionTrait for SchemaManagerConnection<'_> {
         }
     }
 
-    async fn transaction<F, T, E>(&self, callback: F) -> Result<T, TransactionError<E>>
+    async fn transaction<'conn, 'txn, F, T, E>(
+        &'conn self,
+        callback: F,
+    ) -> Result<T, TransactionError<E>>
     where
-        F: for<'a> FnOnce(
-                &'a DatabaseTransaction,
-            ) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>
+        F: FnOnce(
+                &'txn DatabaseTransaction,
+            ) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'txn>>
             + Send,
+        'conn: 'txn,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
@@ -94,17 +98,18 @@ impl TransactionTrait for SchemaManagerConnection<'_> {
         }
     }
 
-    async fn transaction_with_config<F, T, E>(
-        &self,
+    async fn transaction_with_config<'conn, 'txn, F, T, E>(
+        &'conn self,
         callback: F,
         isolation_level: Option<IsolationLevel>,
         access_mode: Option<AccessMode>,
     ) -> Result<T, TransactionError<E>>
     where
-        F: for<'a> FnOnce(
-                &'a DatabaseTransaction,
-            ) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>
+        F: FnOnce(
+                &'txn DatabaseTransaction,
+            ) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'txn>>
             + Send,
+        'conn: 'txn,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
